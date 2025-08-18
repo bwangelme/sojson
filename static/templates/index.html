@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoJSON - JSON 工具</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
+</head>
+<body>
+    <div class="container">
+
+
+        <main class="main-content">
+            <!-- 顶部工具栏 -->
+            <div class="top-toolbar">
+                <!-- 功能选择 -->
+                <div class="function-selector">
+                    <button class="btn btn-function active" data-function="process">去除转义+格式化</button>
+                    <button class="btn btn-function" data-function="unescape">仅去除转义</button>
+                    <button class="btn btn-function" data-function="format">仅格式化</button>
+                    <button class="btn btn-function" data-function="validate">验证JSON</button>
+                </div>
+                
+                <!-- 处理按钮和设置 -->
+                <div class="toolbar-right">
+                    <div class="indent-setting">
+                        <label for="indent-select">缩进:</label>
+                        <select id="indent-select">
+                            <option value="2">2空格</option>
+                            <option value="4" selected>4空格</option>
+                            <option value="0">压缩</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" id="process-btn">
+                        <span class="btn-text">格式化</span>
+                        <span class="loading" style="display: none;">处理中...</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 编辑器区域 -->
+            <div class="editor-container">
+                <div class="editor-section">
+                    <div class="editor-header">
+                        <h3>JSON 编辑器</h3>
+                        <div class="editor-actions">
+                            <button class="btn btn-secondary" id="clear-input">清空</button>
+                            <button class="btn btn-secondary" id="paste-btn">粘贴</button>
+                            <button class="btn btn-secondary" id="copy-output">复制</button>
+                            <button class="btn btn-secondary" id="download-btn">下载</button>
+                        </div>
+                    </div>
+                    <textarea id="input-text" placeholder="请输入需要处理的 JSON 字符串..."></textarea>
+                    <div class="char-count">
+                        字符数: <span id="input-count">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 错误提示 -->
+            <div id="error-message" class="error-message" style="display: none;"></div>
+            
+            <!-- 成功提示 -->
+            <div id="success-message" class="success-message" style="display: none;"></div>
+        </main>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

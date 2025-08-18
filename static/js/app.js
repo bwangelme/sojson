@@ -8,7 +8,6 @@ class SoJSON {
     initElements() {
         // 获取DOM元素
         this.inputText = document.getElementById('input-text');
-        this.outputText = document.getElementById('output-text');
         this.processBtn = document.getElementById('process-btn');
         this.btnText = this.processBtn.querySelector('.btn-text');
         this.loading = this.processBtn.querySelector('.loading');
@@ -16,7 +15,6 @@ class SoJSON {
         this.successMessage = document.getElementById('success-message');
         this.indentSelect = document.getElementById('indent-select');
         this.inputCount = document.getElementById('input-count');
-        this.outputCount = document.getElementById('output-count');
         
         // 功能按钮
         this.functionBtns = document.querySelectorAll('.btn-function');
@@ -67,8 +65,14 @@ class SoJSON {
             }
         });
         
-        // 处理按钮始终显示"处理"
-        this.btnText.textContent = '处理';
+        // 根据功能更新按钮文本
+        const buttonTexts = {
+            'process': '格式化',
+            'unescape': '去除转义', 
+            'format': '格式化',
+            'validate': '验证'
+        };
+        this.btnText.textContent = buttonTexts[func] || '处理';
         
         // 清除之前的结果和错误
         this.hideMessages();
@@ -94,18 +98,17 @@ class SoJSON {
             if (result.success) {
                 if (this.currentFunction === 'validate') {
                     this.showSuccess(result.valid ? 'JSON格式正确' : 'JSON格式错误');
-                    this.outputText.value = result.valid ? '✅ JSON格式正确' : '❌ JSON格式错误';
+                    // 验证功能不修改原内容
                 } else {
-                    this.outputText.value = result.result;
+                    // 将处理结果直接替换到输入框
+                    this.inputText.value = result.result;
                     this.showSuccess('处理成功');
                 }
             } else {
                 this.showError(result.error || '处理失败');
-                this.outputText.value = '';
             }
         } catch (error) {
             this.showError('网络请求失败: ' + error.message);
-            this.outputText.value = '';
         } finally {
             this.setLoading(false);
             this.updateCharCount();
@@ -165,15 +168,6 @@ class SoJSON {
 
     updateCharCount() {
         this.inputCount.textContent = this.inputText.value.length.toLocaleString();
-        this.outputCount.textContent = this.outputText.value.length.toLocaleString();
-    }
-
-    clearInput() {
-        this.inputText.value = '';
-        this.outputText.value = '';
-        this.updateCharCount();
-        this.hideMessages();
-        this.inputText.focus();
     }
 
     async pasteFromClipboard() {
@@ -188,17 +182,17 @@ class SoJSON {
     }
 
     async copyOutput() {
-        if (!this.outputText.value) {
+        if (!this.inputText.value) {
             this.showError('没有可复制的内容');
             return;
         }
         
         try {
-            await navigator.clipboard.writeText(this.outputText.value);
+            await navigator.clipboard.writeText(this.inputText.value);
             this.showSuccess('已复制到剪贴板');
         } catch (error) {
             // 降级方案：选中文本
-            this.outputText.select();
+            this.inputText.select();
             try {
                 document.execCommand('copy');
                 this.showSuccess('已复制到剪贴板');
@@ -209,13 +203,13 @@ class SoJSON {
     }
 
     downloadResult() {
-        if (!this.outputText.value) {
+        if (!this.inputText.value) {
             this.showError('没有可下载的内容');
             return;
         }
         
         const filename = `sojson_result_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
-        const blob = new Blob([this.outputText.value], { type: 'application/json' });
+        const blob = new Blob([this.inputText.value], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         
         const a = document.createElement('a');
@@ -236,10 +230,10 @@ class SoJSON {
             this.processText();
         }
         
-        // Ctrl/Cmd + L: 清空
-        if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+        // Ctrl/Cmd + J: 定位到输入框
+        if ((e.ctrlKey || e.metaKey) && e.key === 'j') {
             e.preventDefault();
-            this.clearInput();
+            this.inputText.focus();
         }
         
         // Ctrl/Cmd + V: 粘贴（在输入框外）
@@ -248,8 +242,8 @@ class SoJSON {
             this.pasteFromClipboard();
         }
         
-        // Ctrl/Cmd + C: 复制输出（在输出框外）
-        if ((e.ctrlKey || e.metaKey) && e.key === 'c' && e.target !== this.outputText && e.target !== this.inputText) {
+        // Ctrl/Cmd + C: 复制内容（在输入框外）
+        if ((e.ctrlKey || e.metaKey) && e.key === 'c' && e.target !== this.inputText) {
             e.preventDefault();
             this.copyOutput();
         }
@@ -258,6 +252,13 @@ class SoJSON {
         if (e.key === 'Escape') {
             this.hideMessages();
         }
+    }
+
+    clearInput() {
+        this.inputText.value = '';
+        this.updateCharCount();
+        this.hideMessages();
+        this.inputText.focus();
     }
 }
 

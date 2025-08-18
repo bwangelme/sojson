@@ -1,21 +1,16 @@
 package main
 
 import (
-	"embed"
 	"fmt"
 	"log"
 	"os"
 
-	"sojson/controller"
+	"sojson/env"
+	"sojson/server"
+	"sojson/zlog"
 
 	"github.com/urfave/cli/v2"
 )
-
-//go:embed static/*
-var staticFiles embed.FS
-
-//go:embed templates/*
-var templateFiles embed.FS
 
 func main() {
 	app := &cli.App{
@@ -27,6 +22,7 @@ func main() {
 				Name: "SoJSON Team",
 			},
 		},
+		Before: initApp,
 		Commands: []*cli.Command{
 			{
 				Name:    "server",
@@ -46,7 +42,7 @@ func main() {
 						Usage:   "服务器监听端口",
 					},
 				},
-				Action: runServer,
+				Action: server.RunHTTPServer,
 			},
 		},
 		DefaultCommand: "server",
@@ -57,20 +53,15 @@ func main() {
 	}
 }
 
-// runServer 运行服务器
-func runServer(ctx *cli.Context) error {
-	host := ctx.String("host")
-	port := ctx.Int("port")
-	address := fmt.Sprintf("%s:%d", host, port)
+// initApp 初始化日志系统
+func initApp(ctx *cli.Context) error {
+	// 初始化日志，输出到 stdout
+	if err := zlog.InitLogger("info", ""); err != nil {
+		return fmt.Errorf("初始化日志失败: %v", err)
+	}
 
-	// 创建路由
-	router := controller.NewRouter(staticFiles, templateFiles)
-	engine := router.SetupRoutes(staticFiles, templateFiles)
+	env.Init()
 
-	// 启动服务器
-	fmt.Printf("🚀 SoJSON 服务器启动在 http://%s\n", address)
-	fmt.Printf("📝 访问主页: http://%s\n", address)
-	fmt.Printf("🔧 API 文档: http://%s/api\n", address)
-
-	return engine.Run(address)
+	zlog.Info(ctx.Context, "系统初始化成功")
+	return nil
 }

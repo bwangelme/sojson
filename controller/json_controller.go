@@ -9,20 +9,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// JSONController JSON处理控制器
-type JSONController struct {
-	jsonService *service.JSONProcessorService
-}
+var (
+	JSONController = &jsonController{}
+)
 
-// NewJSONController 创建JSON控制器
-func NewJSONController(jsonService *service.JSONProcessorService) *JSONController {
-	return &JSONController{
-		jsonService: jsonService,
-	}
+// jsonController JSON处理控制器
+type jsonController struct {
 }
 
 // UnescapeJSON 去除转义接口
-func (ctrl *JSONController) UnescapeJSON(c *gin.Context) {
+func (ctrl *jsonController) UnescapeJSON(c *gin.Context) {
 	var req dto.JSONRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.JSONResponse{
@@ -32,7 +28,7 @@ func (ctrl *JSONController) UnescapeJSON(c *gin.Context) {
 		return
 	}
 
-	result, err := ctrl.jsonService.UnescapeJSON(req.Text)
+	result, err := service.JSONProcessorService.UnescapeJSON(req.Text)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.JSONResponse{
 			Success: false,
@@ -48,7 +44,7 @@ func (ctrl *JSONController) UnescapeJSON(c *gin.Context) {
 }
 
 // FormatJSON 格式化JSON接口
-func (ctrl *JSONController) FormatJSON(c *gin.Context) {
+func (ctrl *jsonController) FormatJSON(c *gin.Context) {
 	var req dto.JSONRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.JSONResponse{
@@ -63,7 +59,7 @@ func (ctrl *JSONController) FormatJSON(c *gin.Context) {
 		indent = 2
 	}
 
-	result, err := ctrl.jsonService.FormatJSON(req.Text, indent)
+	result, err := service.JSONProcessorService.FormatJSON(c.Request.Context(), req.Text, indent)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.JSONResponse{
 			Success: false,
@@ -79,7 +75,7 @@ func (ctrl *JSONController) FormatJSON(c *gin.Context) {
 }
 
 // ProcessJSON 完整处理接口
-func (ctrl *JSONController) ProcessJSON(c *gin.Context) {
+func (ctrl *jsonController) ProcessJSON(c *gin.Context) {
 	var req dto.JSONRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.JSONResponse{
@@ -94,7 +90,7 @@ func (ctrl *JSONController) ProcessJSON(c *gin.Context) {
 		indent = 2
 	}
 
-	result, err := ctrl.jsonService.ProcessJSON(req.Text, indent)
+	result, err := service.JSONProcessorService.ProcessJSON(c.Request.Context(), req.Text, indent)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, dto.JSONResponse{
 			Success: false,
@@ -110,7 +106,7 @@ func (ctrl *JSONController) ProcessJSON(c *gin.Context) {
 }
 
 // ValidateJSON 验证JSON接口
-func (ctrl *JSONController) ValidateJSON(c *gin.Context) {
+func (ctrl *jsonController) ValidateJSON(c *gin.Context) {
 	var req dto.JSONRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ValidateResponse{
@@ -120,7 +116,7 @@ func (ctrl *JSONController) ValidateJSON(c *gin.Context) {
 		return
 	}
 
-	if err := ctrl.jsonService.ValidateJSON(req.Text); err != nil {
+	if err := service.JSONProcessorService.ValidateJSON(req.Text); err != nil {
 		c.JSON(http.StatusOK, dto.ValidateResponse{
 			Valid: false,
 			Error: err.Error(),
