@@ -15,10 +15,10 @@ class SoJSON {
         this.successMessage = document.getElementById('success-message');
         this.indentSelect = document.getElementById('indent-select');
         this.inputCount = document.getElementById('input-count');
-        
+
         // 功能按钮
         this.functionBtns = document.querySelectorAll('.btn-function');
-        
+
         // 操作按钮
         this.clearInputBtn = document.getElementById('clear-input');
         this.pasteBtn = document.getElementById('paste-btn');
@@ -29,30 +29,30 @@ class SoJSON {
     bindEvents() {
         // 处理按钮点击
         this.processBtn.addEventListener('click', () => this.processText());
-        
+
         // 功能选择
         this.functionBtns.forEach(btn => {
             btn.addEventListener('click', (e) => this.selectFunction(e.target.dataset.function));
         });
-        
+
         // 输入框变化监听 (Monaco Editor 在 HTML 中已配置)
-        
+
         // 操作按钮
         this.clearInputBtn.addEventListener('click', () => this.clearInput());
         this.pasteBtn.addEventListener('click', () => this.pasteFromClipboard());
         this.copyOutputBtn.addEventListener('click', () => this.copyOutput());
         this.downloadBtn.addEventListener('click', () => this.downloadResult());
-        
+
         // 键盘快捷键
         document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
-        
+
         // 初始化字符计数 (延迟执行以等待 Monaco Editor 加载)
         setTimeout(() => this.updateCharCount(), 1000);
     }
 
     selectFunction(func) {
         this.currentFunction = func;
-        
+
         // 更新按钮状态
         this.functionBtns.forEach(btn => {
             btn.classList.remove('active');
@@ -60,16 +60,16 @@ class SoJSON {
                 btn.classList.add('active');
             }
         });
-        
+
         // 根据功能更新按钮文本
         const buttonTexts = {
             'process': '格式化',
-            'unescape': '去除转义', 
+            'unescape': '去除转义',
             'format': '格式化',
             'validate': '验证'
         };
         this.btnText.textContent = buttonTexts[func] || '处理';
-        
+
         // 清除之前的结果和错误
         this.hideMessages();
     }
@@ -91,17 +91,25 @@ class SoJSON {
                 indent: parseInt(this.indentSelect.value)
             });
             
-            if (result.success) {
-                if (this.currentFunction === 'validate') {
-                    this.showSuccess(result.valid ? 'JSON格式正确' : 'JSON格式错误');
-                    // 验证功能不修改原内容
+            if (this.currentFunction === 'validate') {
+                // 验证功能使用不同的响应结构 (ValidateResponse)
+                if (result.valid !== undefined) {
+                    if (result.valid) {
+                        this.showSuccess(result.message || 'JSON格式正确');
+                    } else {
+                        this.showError(result.error || 'JSON格式错误');
+                    }
                 } else {
-                    // 将处理结果直接替换到编辑器
-                    this.setEditorValue(result.result);
-                    this.showSuccess('处理成功');
+                    this.showError('验证响应格式错误');
                 }
             } else {
-                this.showError(result.error || '处理失败');
+                // 其他功能使用标准响应结构 (JSONResponse)
+                if (result.success) {
+                    this.setEditorValue(result.result);
+                    this.showSuccess('处理成功');
+                } else {
+                    this.showError(result.error || '处理失败');
+                }
             }
         } catch (error) {
             this.showError('网络请求失败: ' + error.message);
@@ -143,7 +151,7 @@ class SoJSON {
         this.hideMessages();
         this.errorMessage.textContent = message;
         this.errorMessage.style.display = 'block';
-        
+
         // 3秒后自动隐藏
         setTimeout(() => this.hideMessages(), 3000);
     }
@@ -152,7 +160,7 @@ class SoJSON {
         this.hideMessages();
         this.successMessage.textContent = message;
         this.successMessage.style.display = 'block';
-        
+
         // 3秒后自动隐藏
         setTimeout(() => this.hideMessages(), 3000);
     }
@@ -208,7 +216,7 @@ class SoJSON {
             this.showError('没有可复制的内容');
             return;
         }
-        
+
         try {
             await navigator.clipboard.writeText(value);
             this.showSuccess('已复制到剪贴板');
@@ -234,11 +242,11 @@ class SoJSON {
             this.showError('没有可下载的内容');
             return;
         }
-        
+
         const filename = `sojson_result_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
         const blob = new Blob([value], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        
+
         const a = document.createElement('a');
         a.href = url;
         a.download = filename;
@@ -246,7 +254,7 @@ class SoJSON {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
+
         this.showSuccess('文件已下载');
     }
 
@@ -256,25 +264,25 @@ class SoJSON {
             e.preventDefault();
             this.processText();
         }
-        
+
         // Ctrl/Cmd + J: 定位到编辑器
         if ((e.ctrlKey || e.metaKey) && e.key === 'j') {
             e.preventDefault();
             this.focusEditor();
         }
-        
+
         // Ctrl/Cmd + V: 粘贴（在编辑器外）
         if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !this.isInEditor(e.target)) {
             e.preventDefault();
             this.pasteFromClipboard();
         }
-        
+
         // Ctrl/Cmd + C: 复制内容（在编辑器外）
         if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !this.isInEditor(e.target)) {
             e.preventDefault();
             this.copyOutput();
         }
-        
+
         // Escape: 隐藏消息
         if (e.key === 'Escape') {
             this.hideMessages();

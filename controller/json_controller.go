@@ -107,6 +107,7 @@ func (ctrl *jsonController) ProcessJSON(c *gin.Context) {
 
 // ValidateJSON 验证JSON接口
 func (ctrl *jsonController) ValidateJSON(c *gin.Context) {
+
 	var req dto.JSONRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, dto.ValidateResponse{
@@ -117,15 +118,17 @@ func (ctrl *jsonController) ValidateJSON(c *gin.Context) {
 	}
 
 	if err := service.JSONProcessorService.ValidateJSON(req.Text); err != nil {
-		c.JSON(http.StatusOK, dto.ValidateResponse{
+		response := dto.ValidateResponse{
 			Valid: false,
 			Error: err.Error(),
-		})
+		}
+		c.JSON(http.StatusOK, response)
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.ValidateResponse{
+	response := dto.ValidateResponse{
 		Valid:   true,
 		Message: "JSON格式正确",
-	})
+	}
+	c.JSON(http.StatusOK, response)
 }

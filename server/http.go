@@ -20,25 +20,8 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func newGinEngine(ctx context.Context, staticFiles embed.FS, templateFiles embed.FS) *gin.Engine {
-	// 设置为发布模式
-	if env.IsTest() {
-		gin.SetMode(gin.DebugMode)
-	} else {
-		gin.SetMode(gin.ReleaseMode)
-	}
-
-	engine := gin.Default()
-
-	// 配置CORS
-	config := cors.DefaultConfig()
-	config.AllowAllOrigins = true
-	config.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
-	config.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization"}
-	engine.Use(cors.New(config))
-
-	// 使用自定义的静态文件处理器以确保正确的 MIME 类型
-	engine.GET("/static/*filepath", func(c *gin.Context) {
+func newStaticHandler(staticFiles embed.FS) gin.HandlerFunc {
+	return func(c *gin.Context) {
 		filePath := strings.TrimPrefix(c.Param("filepath"), "/")
 
 		// 忽略 source map 请求以减少 404 错误 - 返回 204 No Content
@@ -80,19 +63,36 @@ func newGinEngine(ctx context.Context, staticFiles embed.FS, templateFiles embed
 			}
 		}
 
-		// 强制清除缓存以避免 MIME 类型问题
-		c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
-		c.Header("Pragma", "no-cache")
-		c.Header("Expires", "0")
 		c.Header("Content-Type", contentType)
 
 		// 返回文件内容
 		c.Data(http.StatusOK, contentType, fileData)
-	})
+	}
+
+}
+func newGinEngine(ctx context.Context, staticFiles embed.FS, templateFiles embed.FS) *gin.Engine {
+	// 设置为发布模式
+	if env.IsTest() {
+		gin.SetMode(gin.DebugMode)
+	} else {
+		gin.SetMode(gin.ReleaseMode)
+	}
+
+	engine := gin.Default()
 
 	// 使用嵌入的模板文件
 	templ := template.Must(template.New("").ParseFS(templateFiles, "templates/*.html"))
 	engine.SetHTMLTemplate(templ)
+
+	// 配置CORS
+	config := cors.DefaultConfig()
+	config.AllowAllOrigins = true
+	config.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
+	config.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization"}
+	engine.Use(cors.New(config))
+
+	// 使用自定义的静态文件处理器以确保正确的 MIME 类型
+	engine.GET("/static/*filepath", newStaticHandler(staticFiles))
 
 	return engine
 }

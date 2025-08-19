@@ -75,7 +75,6 @@ func (s *jsonProcessorService) FormatJSON(ctx context.Context, text string, inde
 
 // ProcessJSON 完整处理：先去除转义，再格式化
 func (s *jsonProcessorService) ProcessJSON(ctx context.Context, text string, indent int) (string, error) {
-
 	// 先修复未引号包裹的时间字段
 	fixed := s.FixUnquotedTimeFields(text)
 	zlog.Debugf(ctx, "ProcessJSON: FixUnquotedTimeFields, original length: %d, fixed length: %d", len(text), len(fixed))
