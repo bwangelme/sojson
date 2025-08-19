@@ -195,6 +195,14 @@ body {
     min-height: 0;
 }
 
+/* Monaco Editor 样式 */
+#monaco-editor {
+    flex: 1 !important;
+    width: 100% !important;
+    min-height: calc(100vh - 200px) !important;
+    border: none !important;
+}
+
 .editor-section textarea:focus {
     background: #fafafa;
 }

@@ -35,11 +35,7 @@ class SoJSON {
             btn.addEventListener('click', (e) => this.selectFunction(e.target.dataset.function));
         });
         
-        // 输入框变化
-        this.inputText.addEventListener('input', () => this.updateCharCount());
-        this.inputText.addEventListener('paste', () => {
-            setTimeout(() => this.updateCharCount(), 10);
-        });
+        // 输入框变化监听 (Monaco Editor 在 HTML 中已配置)
         
         // 操作按钮
         this.clearInputBtn.addEventListener('click', () => this.clearInput());
@@ -50,8 +46,8 @@ class SoJSON {
         // 键盘快捷键
         document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
         
-        // 初始化字符计数
-        this.updateCharCount();
+        // 初始化字符计数 (延迟执行以等待 Monaco Editor 加载)
+        setTimeout(() => this.updateCharCount(), 1000);
     }
 
     selectFunction(func) {
@@ -79,7 +75,7 @@ class SoJSON {
     }
 
     async processText() {
-        const inputValue = this.inputText.value.trim();
+        const inputValue = this.getEditorValue().trim();
         
         if (!inputValue) {
             this.showError('请输入要处理的文本');
@@ -100,8 +96,8 @@ class SoJSON {
                     this.showSuccess(result.valid ? 'JSON格式正确' : 'JSON格式错误');
                     // 验证功能不修改原内容
                 } else {
-                    // 将处理结果直接替换到输入框
-                    this.inputText.value = result.result;
+                    // 将处理结果直接替换到编辑器
+                    this.setEditorValue(result.result);
                     this.showSuccess('处理成功');
                 }
             } else {
@@ -167,49 +163,80 @@ class SoJSON {
     }
 
     updateCharCount() {
-        this.inputCount.textContent = this.inputText.value.length.toLocaleString();
+        const value = this.getEditorValue();
+        this.inputCount.textContent = value.length.toLocaleString();
+    }
+
+    // Monaco Editor 相关辅助方法
+    getEditorValue() {
+        if (window.monacoEditor) {
+            return window.monacoEditor.getValue();
+        }
+        return this.inputText.value;
+    }
+
+    setEditorValue(value) {
+        if (window.monacoEditor) {
+            window.monacoEditor.setValue(value);
+        } else {
+            this.inputText.value = value;
+        }
+    }
+
+    focusEditor() {
+        if (window.monacoEditor) {
+            window.monacoEditor.focus();
+        } else {
+            this.inputText.focus();
+        }
     }
 
     async pasteFromClipboard() {
         try {
             const text = await navigator.clipboard.readText();
-            this.inputText.value = text;
+            this.setEditorValue(text);
             this.updateCharCount();
-            this.inputText.focus();
+            this.focusEditor();
         } catch (error) {
             this.showError('无法访问剪贴板，请手动粘贴');
         }
     }
 
     async copyOutput() {
-        if (!this.inputText.value) {
+        const value = this.getEditorValue();
+        if (!value) {
             this.showError('没有可复制的内容');
             return;
         }
         
         try {
-            await navigator.clipboard.writeText(this.inputText.value);
+            await navigator.clipboard.writeText(value);
             this.showSuccess('已复制到剪贴板');
         } catch (error) {
-            // 降级方案：选中文本
-            this.inputText.select();
-            try {
-                document.execCommand('copy');
-                this.showSuccess('已复制到剪贴板');
-            } catch (e) {
+            // 降级方案：如果是传统 textarea，选中文本
+            if (!window.monacoEditor) {
+                this.inputText.select();
+                try {
+                    document.execCommand('copy');
+                    this.showSuccess('已复制到剪贴板');
+                } catch (e) {
+                    this.showError('复制失败，请手动复制');
+                }
+            } else {
                 this.showError('复制失败，请手动复制');
             }
         }
     }
 
     downloadResult() {
-        if (!this.inputText.value) {
+        const value = this.getEditorValue();
+        if (!value) {
             this.showError('没有可下载的内容');
             return;
         }
         
         const filename = `sojson_result_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
-        const blob = new Blob([this.inputText.value], { type: 'application/json' });
+        const blob = new Blob([value], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         
         const a = document.createElement('a');
@@ -230,20 +257,20 @@ class SoJSON {
             this.processText();
         }
         
-        // Ctrl/Cmd + J: 定位到输入框
+        // Ctrl/Cmd + J: 定位到编辑器
         if ((e.ctrlKey || e.metaKey) && e.key === 'j') {
             e.preventDefault();
-            this.inputText.focus();
+            this.focusEditor();
         }
         
-        // Ctrl/Cmd + V: 粘贴（在输入框外）
-        if ((e.ctrlKey || e.metaKey) && e.key === 'v' && e.target !== this.inputText) {
+        // Ctrl/Cmd + V: 粘贴（在编辑器外）
+        if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !this.isInEditor(e.target)) {
             e.preventDefault();
             this.pasteFromClipboard();
         }
         
-        // Ctrl/Cmd + C: 复制内容（在输入框外）
-        if ((e.ctrlKey || e.metaKey) && e.key === 'c' && e.target !== this.inputText) {
+        // Ctrl/Cmd + C: 复制内容（在编辑器外）
+        if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !this.isInEditor(e.target)) {
             e.preventDefault();
             this.copyOutput();
         }
@@ -254,15 +281,25 @@ class SoJSON {
         }
     }
 
+    // 检查目标元素是否在编辑器内
+    isInEditor(target) {
+        if (!target) return false;
+        // 检查是否是传统 textarea
+        if (target === this.inputText) return true;
+        // 检查是否在 Monaco Editor 内
+        const monacoContainer = document.getElementById('monaco-editor');
+        return monacoContainer && monacoContainer.contains(target);
+    }
+
     clearInput() {
-        this.inputText.value = '';
+        this.setEditorValue('');
         this.updateCharCount();
         this.hideMessages();
-        this.inputText.focus();
+        this.focusEditor();
     }
 }
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', () => {
-    new SoJSON();
+    window.soJsonInstance = new SoJSON();
 });

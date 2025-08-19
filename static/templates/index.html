@@ -6,6 +6,8 @@
     <title>SoJSON - JSON 工具</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>">
+    <!-- Monaco Editor CSS -->
+    <link rel="stylesheet" data-name="vs/editor/editor.main" href="/static/monaco-editor/vs/editor/editor.main.css">
 </head>
 <body>
     <div class="container">
@@ -51,7 +53,10 @@
                             <button class="btn btn-secondary" id="download-btn">下载</button>
                         </div>
                     </div>
-                    <textarea id="input-text" placeholder="请输入需要处理的 JSON 字符串..."></textarea>
+                    <!-- Monaco Editor 容器 -->
+                    <div id="monaco-editor"></div>
+                    <!-- 隐藏的 textarea 用于兼容现有代码 -->
+                    <textarea id="input-text" style="display: none;"></textarea>
                     <div class="char-count">
                         字符数: <span id="input-count">0</span>
                     </div>
@@ -66,6 +71,63 @@
         </main>
     </div>
 
+    <!-- Monaco Editor JavaScript (AMD 模式) -->
+    <script src="/static/monaco-editor/vs/loader.js"></script>
+    <script>
+        // 禁用 Monaco Editor 的 source map 加载和开发者工具功能
+        self.MonacoEnvironment = {
+            getWorkerUrl: function (moduleId, label) {
+                return '/static/monaco-editor/vs/base/worker/workerMain.js';
+            }
+        };
+        
+        // 配置 Monaco Editor AMD 加载路径
+        require.config({ 
+            paths: { 
+                vs: '/static/monaco-editor/vs'
+            }
+        });
+        
+        let monacoEditor;
+        
+        // 使用 AMD 方式加载 Monaco Editor
+        require(['vs/editor/editor.main'], function () {
+            monacoEditor = monaco.editor.create(document.getElementById('monaco-editor'), {
+                value: '// 请输入需要处理的 JSON 字符串...',
+                language: 'json',
+                theme: 'vs',
+                automaticLayout: true,
+                wordWrap: 'on',
+                minimap: { enabled: false },
+                fontSize: 14,
+                lineNumbers: 'on',
+                scrollBeyondLastLine: false,
+                formatOnPaste: true,
+                formatOnType: true,
+                folding: true,
+                foldingStrategy: 'auto',
+                showFoldingControls: 'always'
+            });
+            
+            // 监听内容变化，同步到隐藏的 textarea
+            monacoEditor.onDidChangeModelContent(function() {
+                const value = monacoEditor.getValue();
+                document.getElementById('input-text').value = value;
+                document.getElementById('input-count').textContent = value.length;
+            });
+            
+            // 添加快捷键支持
+            monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, function() {
+                // 触发处理文本
+                if (window.soJsonInstance) {
+                    window.soJsonInstance.processText();
+                }
+            });
+            
+            // 全局暴露编辑器实例，供 app.js 使用
+            window.monacoEditor = monacoEditor;
+        });
+    </script>
     <script src="/static/js/app.js"></script>
 </body>
 </html>

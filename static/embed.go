@@ -2,7 +2,7 @@ package static
 
 import "embed"
 
-//go:embed css js
+//go:embed css js monaco-editor
 var StaticFiles embed.FS
 
 //go:embed templates
