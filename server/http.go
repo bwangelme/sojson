@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"sojson/controller"
 	"sojson/env"
+	"sojson/router"
 	"sojson/static"
 	"sojson/zlog"
 
@@ -37,38 +37,15 @@ func newStaticHandler(staticFiles embed.FS) gin.HandlerFunc {
 			return
 		}
 
-		// 设置正确的 MIME 类型
+		// 使用文件扩展名让 Gin 自动设置正确的 Content-Type
 		ext := filepath.Ext(filePath)
-		var contentType string
-		switch ext {
-		case ".js":
-			contentType = "application/javascript; charset=utf-8"
-		case ".css":
-			contentType = "text/css; charset=utf-8"
-		case ".wasm":
-			contentType = "application/wasm"
-		case ".ttf":
-			contentType = "font/ttf"
-		case ".woff":
-			contentType = "font/woff"
-		case ".woff2":
-			contentType = "font/woff2"
-		default:
-			// 使用默认的 MIME 类型检测
-			mimeType := mime.TypeByExtension(ext)
-			if mimeType != "" {
-				contentType = mimeType
-			} else {
-				contentType = "application/octet-stream"
-			}
+		contentType := mime.TypeByExtension(ext)
+		if contentType == "" {
+			contentType = "application/octet-stream"
 		}
 
-		c.Header("Content-Type", contentType)
-
-		// 返回文件内容
 		c.Data(http.StatusOK, contentType, fileData)
 	}
-
 }
 func newGinEngine(ctx context.Context, staticFiles embed.FS, templateFiles embed.FS) *gin.Engine {
 	// 设置为发布模式
@@ -111,7 +88,7 @@ func RunHTTPServer(ctx *cli.Context) error {
 		c.Status(http.StatusNoContent)
 	})
 
-	controller.RegisterRoutes(engine)
+	router.RegisterHTTP(engine)
 
 	// 启动服务器
 	zlog.Infof(ctx.Context, "🚀 SoJSON 服务器启动在 http://%s\n", address)
