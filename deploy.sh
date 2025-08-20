@@ -142,8 +142,8 @@ if supervisorctl status "$PROJECT_NAME" | grep RUNNING > /dev/null; then
     echo "   API:  http://localhost:2378/api"
     echo ""
     echo "📝 日志文件:"
-    echo "   输出日志: $PROJECT_DIR/log/$PROJECT_NAME.out.log"
-    echo "   错误日志: $PROJECT_DIR/log/$PROJECT_NAME.err.log"
+    echo "   输出日志: $PROJECT_DIR/logs/$PROJECT_NAME.out.log"
+    echo "   错误日志: $PROJECT_DIR/logs/$PROJECT_NAME.err.log"
     echo "========================================"
 else
     log_error "$PROJECT_NAME 服务启动失败"
