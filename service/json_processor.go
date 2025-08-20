@@ -20,22 +20,20 @@ type jsonProcessorService struct{}
 func (s *jsonProcessorService) UnescapeJSON(text string) (string, error) {
 	text = strings.TrimSpace(text)
 
-	// 检查是否是被引号包围的JSON字符串
+	// 去除外层引号
 	if strings.HasPrefix(text, `"`) && strings.HasSuffix(text, `"`) && len(text) > 1 {
-		// 去除外层引号
 		text = text[1 : len(text)-1]
-
-		// 只有在去除外层引号后才进行转义字符的处理
-		text = strings.ReplaceAll(text, `\"`, `"`)
-		text = strings.ReplaceAll(text, `\/`, `/`)
-		text = strings.ReplaceAll(text, `\\`, `\`)
-		text = strings.ReplaceAll(text, `\n`, "\n")
-		text = strings.ReplaceAll(text, `\r`, "\r")
-		text = strings.ReplaceAll(text, `\t`, "\t")
-		text = strings.ReplaceAll(text, `\b`, "\b")
-		text = strings.ReplaceAll(text, `\f`, "\f")
 	}
-	// 如果不是被引号包围的字符串，则不进行任何转义处理
+
+	// 只有在去除外层引号后才进行转义字符的处理
+	text = strings.ReplaceAll(text, `\"`, `"`)
+	text = strings.ReplaceAll(text, `\/`, `/`)
+	text = strings.ReplaceAll(text, `\\`, `\`)
+	text = strings.ReplaceAll(text, `\n`, "\n")
+	text = strings.ReplaceAll(text, `\r`, "\r")
+	text = strings.ReplaceAll(text, `\t`, "\t")
+	text = strings.ReplaceAll(text, `\b`, "\b")
+	text = strings.ReplaceAll(text, `\f`, "\f")
 
 	return text, nil
 }
